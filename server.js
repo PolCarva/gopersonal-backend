@@ -11,6 +11,7 @@ dotenv.config();
 const userRoutes = require('./routes/users');
 const orderRoutes = require('./routes/orders');
 const profileRoutes = require('./routes/profiles');
+const cartRoutes = require('./routes/carts');
 
 // Inicialización de la aplicación Express
 const app = express();
@@ -27,6 +28,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api/carts', cartRoutes);
 
 // Ruta de bienvenida
 app.get('/', (req, res) => {
