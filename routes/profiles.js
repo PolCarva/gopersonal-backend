@@ -60,32 +60,60 @@ router.put('/me', protect, async (req, res) => {
 // @route   POST /api/profiles/upload-photo
 // @desc    Subir foto de perfil
 // @access  Private
-router.post('/upload-photo', protect, upload.single('profileImage'), async (req, res) => {
+router.post('/upload-photo', protect, require('../middlewares/upload'), async (req, res) => {
   try {
+    console.log('Iniciando procesamiento de imagen de perfil');
+    
     if (!req.file) {
+      console.log('Error: No se ha subido ninguna imagen');
       return res.status(400).json({ message: 'No se ha subido ninguna imagen' });
     }
+    
+    console.log('Imagen recibida:', JSON.stringify({
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path
+    }));
     
     // Actualizar URL de imagen en el usuario
     const user = await User.findById(req.user._id);
     
     if (!user) {
+      console.log('Error: Usuario no encontrado');
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
     
-    // Construir URL para la imagen
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Construir URL para la imagen - usar path relativo para funcionar en cualquier entorno
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     
-    user.profileImage = imageUrl;
-    await user.save();
+    console.log('URL de imagen generada:', imageUrl);
     
-    res.json({
-      message: 'Imagen de perfil actualizada con éxito',
-      profileImage: imageUrl
-    });
+    try {
+      user.profileImage = imageUrl;
+      await user.save();
+      console.log('Imagen de perfil guardada en base de datos para usuario:', user._id);
+      
+      res.json({
+        message: 'Imagen de perfil actualizada con éxito',
+        profileImage: imageUrl
+      });
+    } catch (dbError) {
+      console.error('Error al guardar la imagen en la base de datos:', dbError);
+      // Aunque falle la actualización en la BD, devolvemos la URL para que el frontend pueda mostrar la imagen
+      res.status(500).json({ 
+        message: 'La imagen se subió pero no se pudo actualizar la base de datos', 
+        error: dbError.message,
+        profileImage: imageUrl
+      });
+    }
   } catch (error) {
-    console.error('Error al subir imagen de perfil:', error);
-    res.status(500).json({ message: 'Error del servidor', error: error.message });
+    console.error('Error al procesar imagen de perfil:', error);
+    res.status(500).json({ 
+      message: 'Error del servidor al procesar la imagen', 
+      error: error.message 
+    });
   }
 });
 
