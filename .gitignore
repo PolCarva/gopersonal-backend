@@ -14,7 +14,6 @@ yarn.lock
 .env.production
 
 # Directorios de carga
-/uploads/
 /public/uploads/
 
 # Logs
